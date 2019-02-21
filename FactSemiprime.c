@@ -26,108 +26,89 @@ int isSquare(mpf_t n) {
 
 int main(int argc, char** argv) {
 	mpf_t n;
-	mpf_t n_minusone;
-	mpf_t n_x4;
+	mpf_t n_plusone;
 	mpf_t sqrt_n;
 	mpf_t num;
-	mpf_t num_x2;
-	mpf_t num_x2_pow2;
 	mpf_t p;
 	mpf_t q;
 	mpf_t sqrt_delta;
-	mpf_t aux;
-	mpf_t x;
-	FILE* file_o;
-	FILE* file_i;
-
+	mpf_t offset;
 	mpf_t max_num;
 	mpf_t delta;
+
+	FILE* file_o;
+	FILE* file_i;
 	int i;
 	int trovato;
 	int opt;
+
 	mpf_set_default_prec(1200);
-	
 	mpf_init(n);
-	mpf_init(n_minusone);
+	mpf_init(n_plusone);
 	mpf_init(sqrt_n);
 	mpf_init(num);
 	mpf_init(max_num);
 	mpf_init(delta);
-	mpf_init(n_x4);
-	mpf_init(num_x2);
-	mpf_init(num_x2_pow2);
 	mpf_init(p);
 	mpf_init(q);
 	mpf_init(sqrt_delta);
-	mpf_init(aux);
-	mpf_init(x);
+	mpf_init(offset);
 	
-	/*if (argc == 5) {
-		if (strcmp(argv[1], "-i") == 0 && strcmp(argv[3], "-o") == 0){
-			if ((file2 = fopen(argv[2], "r")) == NULL || (file = fopen(argv[4], "w+")) == NULL) {
-				perror("fopen");
+	// Parser Input
+	file_o = stdout;
+	file_i = stdin;
+
+	while (optind < argc) {
+		if ((opt = getopt(argc, argv, "i:o:")) != -1) {
+			switch (opt) {
+			case 'i': {
+				if ((file_i = fopen(optarg, "r")) == NULL) {
+					perror("test: input path");
+					return -1;
+				}
+			} break;
+			case 'o': {
+				if ((file_o = fopen(optarg, "rw")) == NULL) {
+					perror("test: output path");
+					return -1;
+				}
+			} break;
+			default: {
+				printf("test: usare ./test [-i <path_inputfile>] [-o <path_outputfile>]\n");
 				return -1;
-			}
-		}
-		else if (strcmp(argv[3], "-i") == 0 && strcmp(argv[1], "-o") == 0) {
-			if ((file2 = fopen(argv[4], "r")) == NULL || (file = fopen(argv[2], "w+")) == NULL) {
-				perror("fopen");
-				return -1;
+			} break;
 			}
 		}
 		else {
-			printf("errore: usare ./test -i path_inputfile -o path_outputfile\n");
+			printf("test: usare ./test [-i <path_inputfile>] [-o <path_outputfile>]\n");
 			return -1;
-		}
-	}
-	else {
-		printf("errore: usare ./test -i path_inputfile -o path_outputfile\n");
-		return -1;
-	}*/
-
-	// -- Parser Input --
-
-	int k = 0;
-	file_o = stdout;
-	file_i = stdin;
-	while ((opt = getopt(argc, argv, "i:o:")) != -1) {
-		switch (opt) {
-		case 'i': {
-			if ((file_i = fopen(optarg, "r")) == NULL) {
-				perror("fopen");
-				file_i = stdin;
-			}
-		} break;
-		case 'o': {
-			if ((file_o = fopen(optarg, "w+")) == NULL) {
-				perror("fopen");
-				file_o = stdout;
-			}
-		} break;
-		default: {
-			printf("errore: usare ./test -i path_inputfile -o path_outputfile\n");
-			return -1;
-		} break;
 		}
 	}
 	
+	// Prendo N in input
 	fprintf(file_o, "N: ");
+
 	mpf_inp_str(n, file_i, 10);
 	if (file_i != stdin) {
 		mpf_out_str(file_o, 10, 1200, n);
 		fprintf(file_o, "\n");
 	}
 
+	// Calcolo limite minimo: n^(1/2)
 	mpf_sqrt(sqrt_n, n);
 	mpf_ceil(num, sqrt_n);
 	
-	mpf_add_ui(n_minusone, n, 1);
-	mpf_div_ui(max_num, n_minusone, 2);
+	// Calcolo limite massimo: (n + 1)/2
+	mpf_add_ui(n_plusone, n, 1);
+	mpf_div_ui(max_num, n_plusone, 2);
 
+	// Calcolo delta iniziale: num^2 - n
 	mpf_pow_ui(delta, num, 2);
 	mpf_sub(delta, delta, n);
-	mpf_mul_ui(x, num, 2);
-	mpf_add_ui(x, x, 1);
+
+	// Calcolo offset tra quadrati iniziale: num * 2 + 1
+	mpf_mul_ui(offset, num, 2);
+	mpf_add_ui(offset, offset, 1);
 
 	i = 0;
 	trovato = 0;
@@ -145,11 +126,12 @@ int main(int argc, char** argv) {
 			mpf_add(p, num, sqrt_delta);
 			mpf_div(q, n, p);
 		}
-
-		i++;
-		mpf_add_ui(num, num, 1);
-		mpf_add(delta, delta, x);
-		mpf_add_ui(x, x, 2);
+		else {
+			mpf_add_ui(num, num, 1);
+			mpf_add(delta, delta, offset);
+			mpf_add_ui(offset, offset, 2);
+			i++;
+		}
 	}
 
 	if (trovato) {
@@ -167,14 +149,10 @@ int main(int argc, char** argv) {
 	mpf_clear(num);
 	mpf_clear(max_num);
 	mpf_clear(delta);
-	mpf_clear(n_minusone);
-	mpf_clear(n_x4);
-	mpf_clear(num_x2);
-	mpf_clear(num_x2_pow2);
+	mpf_clear(n_plusone);
 	mpf_clear(p);
 	mpf_clear(q);
 	mpf_clear(sqrt_delta);
-	mpf_clear(aux);
-	mpf_clear(x);
+	mpf_clear(offset);
 	return 0;
 }
